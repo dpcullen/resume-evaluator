@@ -107,7 +107,7 @@ function LoadingSkeleton() {
     <div className="space-y-6 mt-8">
       <div className="flex items-center gap-3">
         <div className="w-5 h-5 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
-        <p className="text-[#D4AF37] font-medium">Analyzing resume — this takes 15-30 seconds...</p>
+        <p className="text-[#D4AF37] font-medium">Analyzing resume — this takes 10-20 seconds...</p>
       </div>
       <div className="shimmer h-36 rounded-lg" />
       <div className="shimmer h-48 rounded-lg" />
@@ -167,7 +167,7 @@ export default function App() {
   }
 
   async function evaluateResume() {
-    if (!apiKey.trim()) return setError('Please enter your Anthropic API key.')
+    if (!apiKey.trim()) return setError('Please enter your Google Gemini API key.')
     if (!resumeText.trim()) return setError('Please paste your resume text.')
     setError('')
     setResult(null)
@@ -178,29 +178,30 @@ export default function App() {
       : `RESUME:\n${resumeText}`
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey.trim(),
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 4096,
-          system: SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: userMessage }],
-        }),
-      })
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey.trim()}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            contents: [{ parts: [{ text: userMessage }] }],
+            generationConfig: {
+              response_mime_type: 'application/json',
+              temperature: 0.4,
+            },
+          }),
+        }
+      )
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}))
-        throw new Error(errData?.error?.message || `API error: ${response.status}`)
+        const msg = errData?.error?.message || `API error: ${response.status}`
+        throw new Error(msg)
       }
 
       const data = await response.json()
-      const text = data.content?.[0]?.text || ''
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
       const parsed = JSON.parse(text)
       setResult(parsed)
     } catch (err) {
@@ -235,7 +236,7 @@ export default function App() {
         {/* API Key */}
         <div className="mb-6 bg-neutral-900/50 border border-neutral-800 rounded-lg p-4">
           <label className="block text-sm text-neutral-400 mb-2">
-            Anthropic API Key
+            Google Gemini API Key
             <span className="text-neutral-600 ml-2 text-xs">(never stored — session only)</span>
           </label>
           <div className="flex gap-2">
@@ -243,7 +244,7 @@ export default function App() {
               type={showKey ? 'text' : 'password'}
               value={apiKey}
               onChange={e => setApiKey(e.target.value)}
-              placeholder="sk-ant-..."
+              placeholder="AIza..."
               className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-[#D4AF37] transition-colors"
             />
             <button
@@ -403,7 +404,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="border-t border-neutral-800 mt-12 py-6 text-center text-xs text-neutral-600">
-        Resume Evaluator &mdash; Powered by Claude
+        Resume Evaluator &mdash; Powered by Gemini
       </footer>
     </div>
   )
