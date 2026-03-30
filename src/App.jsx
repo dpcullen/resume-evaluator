@@ -118,13 +118,14 @@ function LoadingSkeleton() {
 }
 
 export default function App() {
-  const [apiKey, setApiKey] = useState('')
+  const [apiKey, setApiKey] = useState(() => sessionStorage.getItem('gemini_key') || '')
   const [resumeText, setResumeText] = useState('')
   const [jobDescription, setJobDescription] = useState('')
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showKey, setShowKey] = useState(false)
+  const [rememberKey, setRememberKey] = useState(() => !!sessionStorage.getItem('gemini_key'))
   const [fileName, setFileName] = useState('')
   const [fileLoading, setFileLoading] = useState(false)
   const fileInputRef = useRef(null)
@@ -238,13 +239,19 @@ export default function App() {
         <div className="mb-6 bg-neutral-900/50 border border-neutral-800 rounded-lg p-4">
           <label className="block text-sm text-neutral-400 mb-2">
             Google Gemini API Key
-            <span className="text-neutral-600 ml-2 text-xs">(never stored — session only)</span>
+            {rememberKey && apiKey
+              ? <span className="text-green-500 ml-2 text-xs">Saved for this session</span>
+              : <span className="text-neutral-600 ml-2 text-xs">(never stored permanently)</span>
+            }
           </label>
           <div className="flex gap-2">
             <input
               type={showKey ? 'text' : 'password'}
               value={apiKey}
-              onChange={e => setApiKey(e.target.value)}
+              onChange={e => {
+                setApiKey(e.target.value)
+                if (rememberKey) sessionStorage.setItem('gemini_key', e.target.value)
+              }}
               placeholder="AIza..."
               className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-[#D4AF37] transition-colors"
             />
@@ -255,6 +262,22 @@ export default function App() {
               {showKey ? 'Hide' : 'Show'}
             </button>
           </div>
+          <label className="flex items-center gap-2 mt-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={rememberKey}
+              onChange={e => {
+                setRememberKey(e.target.checked)
+                if (e.target.checked) {
+                  sessionStorage.setItem('gemini_key', apiKey)
+                } else {
+                  sessionStorage.removeItem('gemini_key')
+                }
+              }}
+              className="accent-[#D4AF37] w-3.5 h-3.5"
+            />
+            <span className="text-xs text-neutral-500">Remember key until I close the browser</span>
+          </label>
         </div>
 
         {/* Input Section */}
